@@ -4,7 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
+//using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoGen.OpenAI.Extension;
@@ -29,7 +29,7 @@ namespace AutoGen.OpenAI;
 /// </item>
 /// </list>
 /// </summary>
-public class OpenAIChatAgent : IStreamingAgent
+public class OpenAIChatAgent : IAgent
 {
     private readonly OpenAIClient openAIClient;
     private readonly string modelName;
@@ -87,23 +87,23 @@ public class OpenAIChatAgent : IStreamingAgent
         return new MessageEnvelope<ChatCompletions>(reply, from: this.Name);
     }
 
-    public async IAsyncEnumerable<IMessage> GenerateStreamingReplyAsync(
-        IEnumerable<IMessage> messages,
-        GenerateReplyOptions? options = null,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        var settings = this.CreateChatCompletionsOptions(options, messages);
-        var response = await this.openAIClient.GetChatCompletionsStreamingAsync(settings, cancellationToken);
-        await foreach (var update in response.WithCancellation(cancellationToken))
-        {
-            if (update.ChoiceIndex > 0)
-            {
-                throw new InvalidOperationException("Only one choice is supported in streaming response");
-            }
+    //public async IAsyncEnumerable<IMessage> GenerateStreamingReplyAsync(
+    //    IEnumerable<IMessage> messages,
+    //    GenerateReplyOptions? options = null,
+    //    [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    //{
+    //    var settings = this.CreateChatCompletionsOptions(options, messages);
+    //    var response = await this.openAIClient.GetChatCompletionsStreamingAsync(settings, cancellationToken);
+    //    await foreach (var update in response.WithCancellation(cancellationToken))
+    //    {
+    //        if (update.ChoiceIndex > 0)
+    //        {
+    //            throw new InvalidOperationException("Only one choice is supported in streaming response");
+    //        }
 
-            yield return new MessageEnvelope<StreamingChatCompletionsUpdate>(update, from: this.Name);
-        }
-    }
+    //        yield return new MessageEnvelope<StreamingChatCompletionsUpdate>(update, from: this.Name);
+    //    }
+    //}
 
     private ChatCompletionsOptions CreateChatCompletionsOptions(GenerateReplyOptions? options, IEnumerable<IMessage> messages)
     {

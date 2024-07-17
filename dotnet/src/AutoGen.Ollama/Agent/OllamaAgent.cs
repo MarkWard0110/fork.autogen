@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Runtime.CompilerServices;
+//using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -18,77 +18,125 @@ namespace AutoGen.Ollama;
 /// <summary>
 /// An agent that can interact with ollama models.
 /// </summary>
-public class OllamaAgent : IStreamingAgent
+public class OllamaAgent : IAgent
 {
     private readonly HttpClient _httpClient;
     private readonly string _modelName;
     private readonly string _systemMessage;
     private readonly OllamaReplyOptions? _replyOptions;
+    private readonly bool _useStreamingApi;
+    private readonly TextWriter? _outputStream;
 
     public OllamaAgent(HttpClient httpClient, string name, string modelName,
         string systemMessage = "You are a helpful AI assistant",
-        OllamaReplyOptions? replyOptions = null)
+        OllamaReplyOptions? replyOptions = null,
+        bool useStreamingApi = false,
+        TextWriter? outputStream = null)
     {
         Name = name;
         _httpClient = httpClient;
         _modelName = modelName;
         _systemMessage = systemMessage;
         _replyOptions = replyOptions;
+        _useStreamingApi = useStreamingApi;
+        _outputStream = outputStream;
     }
 
     public async Task<IMessage> GenerateReplyAsync(
-        IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, CancellationToken cancellation = default)
+        IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
     {
         ChatRequest request = await BuildChatRequest(messages, options);
-        request.Stream = false;
+        request.Stream = _useStreamingApi;
         var httpRequest = BuildRequest(request);
-        using (HttpResponseMessage? response = await _httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseContentRead, cancellation))
-        {
-            response.EnsureSuccessStatusCode();
-            Stream? streamResponse = await response.Content.ReadAsStreamAsync();
-            ChatResponse chatResponse = await JsonSerializer.DeserializeAsync<ChatResponse>(streamResponse, cancellationToken: cancellation)
-                                                           ?? throw new Exception("Failed to deserialize response");
-            var output = new MessageEnvelope<ChatResponse>(chatResponse, from: Name);
-            return output;
-        }
-    }
 
-    public async IAsyncEnumerable<IMessage> GenerateStreamingReplyAsync(
-        IEnumerable<IMessage> messages,
-        GenerateReplyOptions? options = null,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        ChatRequest request = await BuildChatRequest(messages, options);
-        request.Stream = true;
-        HttpRequestMessage message = BuildRequest(request);
-        using (HttpResponseMessage? response = await _httpClient.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken))
+        if (_useStreamingApi)
         {
-            response.EnsureSuccessStatusCode();
-            using Stream? stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-            using var reader = new StreamReader(stream);
-
-            while (!reader.EndOfStream && !cancellationToken.IsCancellationRequested)
+            using (HttpResponseMessage? response = await _httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken))
             {
-                string? line = await reader.ReadLineAsync();
-                if (string.IsNullOrWhiteSpace(line))
-                {
-                    continue;
-                }
+                response.EnsureSuccessStatusCode();
+                using var streamResponse = await response.Content.ReadAsStreamAsync();
+                using var reader = new StreamReader(streamResponse);
 
-                ChatResponseUpdate? update = JsonSerializer.Deserialize<ChatResponseUpdate>(line);
-                if (update is { Done: false })
-                {
-                    yield return new MessageEnvelope<ChatResponseUpdate>(update, from: Name);
-                }
-                else
-                {
-                    var finalUpdate = JsonSerializer.Deserialize<ChatResponse>(line) ?? throw new Exception("Failed to deserialize response");
+                string? responseRole = null;
+                var responseContent = new StringBuilder();
 
-                    yield return new MessageEnvelope<ChatResponse>(finalUpdate, from: Name);
+                while (!reader.EndOfStream && !cancellationToken.IsCancellationRequested)
+                {
+                    string? line = await reader.ReadLineAsync();
+                    ChatResponseUpdate? update = JsonSerializer.Deserialize<ChatResponseUpdate>(line);
+
+                    responseRole ??= update?.Message?.Role;
+                    responseContent.Append(update?.Message?.Value);
+
+                    // write to feedback stream here
+                    if (_outputStream != null)
+                    {
+                        await _outputStream.WriteAsync(update?.Message?.Value);
+                        _outputStream.Flush();
+                    }
+
+                    if (update?.Done ?? false)
+                    {
+                        responseRole ??= string.Empty;
+                        var finalUpdate = JsonSerializer.Deserialize<ChatResponse>(line) ?? throw new Exception("Failed to deserialize response");
+                        finalUpdate.Message = new Message(responseRole, responseContent.ToString());
+                        var output = new MessageEnvelope<ChatResponse>(finalUpdate, from: Name);
+                        return output;
+                    }
                 }
+            }
+            throw new NotImplementedException();
+        }
+        else
+        {
+            using (HttpResponseMessage? response = await _httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseContentRead, cancellationToken))
+            {
+                response.EnsureSuccessStatusCode();
+                using Stream? streamResponse = await response.Content.ReadAsStreamAsync();
+                ChatResponse chatResponse = await JsonSerializer.DeserializeAsync<ChatResponse>(streamResponse, cancellationToken: cancellationToken)
+                                                               ?? throw new Exception("Failed to deserialize response");
+                var output = new MessageEnvelope<ChatResponse>(chatResponse, from: Name);
+                return output;
             }
         }
     }
+
+    //public async IAsyncEnumerable<IMessage> GenerateStreamingReplyAsync(
+    //    IEnumerable<IMessage> messages,
+    //    GenerateReplyOptions? options = null,
+    //    [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    //{
+    //    ChatRequest request = await BuildChatRequest(messages, options);
+    //    request.Stream = true;
+    //    HttpRequestMessage message = BuildRequest(request);
+    //    using (HttpResponseMessage? response = await _httpClient.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken))
+    //    {
+    //        response.EnsureSuccessStatusCode();
+    //        using Stream? stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+    //        using var reader = new StreamReader(stream);
+
+    //        while (!reader.EndOfStream && !cancellationToken.IsCancellationRequested)
+    //        {
+    //            string? line = await reader.ReadLineAsync();
+    //            if (string.IsNullOrWhiteSpace(line))
+    //            {
+    //                continue;
+    //            }
+
+    //            ChatResponseUpdate? update = JsonSerializer.Deserialize<ChatResponseUpdate>(line);
+    //            if (update is { Done: false })
+    //            {
+    //                yield return new MessageEnvelope<ChatResponseUpdate>(update, from: Name);
+    //            }
+    //            else
+    //            {
+    //                var finalUpdate = JsonSerializer.Deserialize<ChatResponse>(line) ?? throw new Exception("Failed to deserialize response");
+
+    //                yield return new MessageEnvelope<ChatResponse>(finalUpdate, from: Name);
+    //            }
+    //        }
+    //    }
+    //}
 
     public string Name { get; }
 

@@ -4,7 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
+//using System.Runtime.CompilerServices;`
 using System.Threading;
 using System.Threading.Tasks;
 using AutoGen.Core;
@@ -13,7 +13,7 @@ using Google.Cloud.AIPlatform.V1;
 using Google.Protobuf.Collections;
 namespace AutoGen.Gemini;
 
-public class GeminiChatAgent : IStreamingAgent
+public class GeminiChatAgent : IAgent
 {
     private readonly IGeminiClient client;
     private readonly string? systemMessage;
@@ -143,16 +143,16 @@ public class GeminiChatAgent : IStreamingAgent
         return MessageEnvelope.Create(response, this.Name);
     }
 
-    public async IAsyncEnumerable<IMessage> GenerateStreamingReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        var request = BuildChatRequest(messages, options);
-        var response = this.client.GenerateContentStreamAsync(request);
+    //public async IAsyncEnumerable<IMessage> GenerateStreamingReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    //{
+    //    var request = BuildChatRequest(messages, options);
+    //    var response = this.client.GenerateContentStreamAsync(request);
 
-        await foreach (var item in response.WithCancellation(cancellationToken).ConfigureAwait(false))
-        {
-            yield return MessageEnvelope.Create(item, this.Name);
-        }
-    }
+    //    await foreach (var item in response.WithCancellation(cancellationToken).ConfigureAwait(false))
+    //    {
+    //        yield return MessageEnvelope.Create(item, this.Name);
+    //    }
+    //}
 
     private GenerateContentRequest BuildChatRequest(IEnumerable<IMessage> messages, GenerateReplyOptions? options)
     {

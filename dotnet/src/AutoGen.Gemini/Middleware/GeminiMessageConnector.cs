@@ -4,7 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
+//using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading;
@@ -13,12 +13,12 @@ using AutoGen.Core;
 using Google.Cloud.AIPlatform.V1;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
-using static Google.Cloud.AIPlatform.V1.Candidate.Types;
+//using static Google.Cloud.AIPlatform.V1.Candidate.Types;
 using IMessage = AutoGen.Core.IMessage;
 
 namespace AutoGen.Gemini;
 
-public class GeminiMessageConnector : IStreamingMiddleware
+public class GeminiMessageConnector : IMiddleware
 {
     /// <summary>
     /// if true, the connector will throw an exception if it encounters an unsupport message type.
@@ -39,77 +39,77 @@ public class GeminiMessageConnector : IStreamingMiddleware
 
     public string Name => nameof(GeminiMessageConnector);
 
-    public async IAsyncEnumerable<IMessage> InvokeAsync(MiddlewareContext context, IStreamingAgent agent, [EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        var messages = ProcessMessage(context.Messages, agent);
+    //public async IAsyncEnumerable<IMessage> InvokeAsync(MiddlewareContext context, IStreamingAgent agent, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    //{
+    //    var messages = ProcessMessage(context.Messages, agent);
 
-        var bucket = new List<GenerateContentResponse>();
+    //    var bucket = new List<GenerateContentResponse>();
 
-        await foreach (var reply in agent.GenerateStreamingReplyAsync(messages, context.Options, cancellationToken))
-        {
-            if (reply is Core.IMessage<GenerateContentResponse> m)
-            {
-                // if m.Content is empty and stop reason is Stop, ignore the message
-                if (m.Content.Candidates.Count == 1 && m.Content.Candidates[0].Content.Parts.Count == 1 && m.Content.Candidates[0].Content.Parts[0].DataCase == Part.DataOneofCase.Text)
-                {
-                    var text = m.Content.Candidates[0].Content.Parts[0].Text;
-                    var stopReason = m.Content.Candidates[0].FinishReason;
-                    if (string.IsNullOrEmpty(text) && stopReason == FinishReason.Stop)
-                    {
-                        continue;
-                    }
-                }
+    //    await foreach (var reply in agent.GenerateStreamingReplyAsync(messages, context.Options, cancellationToken))
+    //    {
+    //        if (reply is Core.IMessage<GenerateContentResponse> m)
+    //        {
+    //            // if m.Content is empty and stop reason is Stop, ignore the message
+    //            if (m.Content.Candidates.Count == 1 && m.Content.Candidates[0].Content.Parts.Count == 1 && m.Content.Candidates[0].Content.Parts[0].DataCase == Part.DataOneofCase.Text)
+    //            {
+    //                var text = m.Content.Candidates[0].Content.Parts[0].Text;
+    //                var stopReason = m.Content.Candidates[0].FinishReason;
+    //                if (string.IsNullOrEmpty(text) && stopReason == FinishReason.Stop)
+    //                {
+    //                    continue;
+    //                }
+    //            }
 
-                bucket.Add(m.Content);
+    //            bucket.Add(m.Content);
 
-                yield return PostProcessStreamingMessage(m.Content, agent);
-            }
-            else if (strictMode)
-            {
-                throw new InvalidOperationException($"Unsupported message type: {reply.GetType()}");
-            }
-            else
-            {
-                yield return reply;
-            }
+    //            yield return PostProcessStreamingMessage(m.Content, agent);
+    //        }
+    //        else if (strictMode)
+    //        {
+    //            throw new InvalidOperationException($"Unsupported message type: {reply.GetType()}");
+    //        }
+    //        else
+    //        {
+    //            yield return reply;
+    //        }
 
-            // aggregate the message updates from bucket into a single message
-            if (bucket is { Count: > 0 })
-            {
-                var isTextMessageUpdates = bucket.All(m => m.Candidates.Count == 1 && m.Candidates[0].Content.Parts.Count == 1 && m.Candidates[0].Content.Parts[0].DataCase == Part.DataOneofCase.Text);
-                var isFunctionCallUpdates = bucket.Any(m => m.Candidates.Count == 1 && m.Candidates[0].Content.Parts.Count == 1 && m.Candidates[0].Content.Parts[0].DataCase == Part.DataOneofCase.FunctionCall);
-                if (isTextMessageUpdates)
-                {
-                    var text = string.Join(string.Empty, bucket.Select(m => m.Candidates[0].Content.Parts[0].Text));
-                    var textMessage = new TextMessage(Role.Assistant, text, agent.Name);
+    //        // aggregate the message updates from bucket into a single message
+    //        if (bucket is { Count: > 0 })
+    //        {
+    //            var isTextMessageUpdates = bucket.All(m => m.Candidates.Count == 1 && m.Candidates[0].Content.Parts.Count == 1 && m.Candidates[0].Content.Parts[0].DataCase == Part.DataOneofCase.Text);
+    //            var isFunctionCallUpdates = bucket.Any(m => m.Candidates.Count == 1 && m.Candidates[0].Content.Parts.Count == 1 && m.Candidates[0].Content.Parts[0].DataCase == Part.DataOneofCase.FunctionCall);
+    //            if (isTextMessageUpdates)
+    //            {
+    //                var text = string.Join(string.Empty, bucket.Select(m => m.Candidates[0].Content.Parts[0].Text));
+    //                var textMessage = new TextMessage(Role.Assistant, text, agent.Name);
 
-                    yield return textMessage;
-                }
-                else if (isFunctionCallUpdates)
-                {
-                    var functionCallParts = bucket.Where(m => m.Candidates.Count == 1 && m.Candidates[0].Content.Parts.Count == 1 && m.Candidates[0].Content.Parts[0].DataCase == Part.DataOneofCase.FunctionCall)
-                        .Select(m => m.Candidates[0].Content.Parts[0]).ToList();
+    //                yield return textMessage;
+    //            }
+    //            else if (isFunctionCallUpdates)
+    //            {
+    //                var functionCallParts = bucket.Where(m => m.Candidates.Count == 1 && m.Candidates[0].Content.Parts.Count == 1 && m.Candidates[0].Content.Parts[0].DataCase == Part.DataOneofCase.FunctionCall)
+    //                    .Select(m => m.Candidates[0].Content.Parts[0]).ToList();
 
-                    var toolCalls = new List<ToolCall>();
-                    foreach (var part in functionCallParts)
-                    {
-                        var fc = part.FunctionCall;
-                        var toolCall = new ToolCall(fc.Name, fc.Args.ToString());
+    //                var toolCalls = new List<ToolCall>();
+    //                foreach (var part in functionCallParts)
+    //                {
+    //                    var fc = part.FunctionCall;
+    //                    var toolCall = new ToolCall(fc.Name, fc.Args.ToString());
 
-                        toolCalls.Add(toolCall);
-                    }
+    //                    toolCalls.Add(toolCall);
+    //                }
 
-                    var toolCallMessage = new ToolCallMessage(toolCalls, agent.Name);
+    //                var toolCallMessage = new ToolCallMessage(toolCalls, agent.Name);
 
-                    yield return toolCallMessage;
-                }
-                else
-                {
-                    throw new InvalidOperationException("The response should contain either text or tool calls.");
-                }
-            }
-        }
-    }
+    //                yield return toolCallMessage;
+    //            }
+    //            else
+    //            {
+    //                throw new InvalidOperationException("The response should contain either text or tool calls.");
+    //            }
+    //        }
+    //    }
+    //}
 
     public async Task<IMessage> InvokeAsync(MiddlewareContext context, IAgent agent, CancellationToken cancellationToken = default)
     {

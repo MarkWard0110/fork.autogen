@@ -27,10 +27,10 @@ namespace AutoGen.OpenAI;
 /// <para>- <see cref="ToolCallMessage"/></para>
 /// <para>- <see cref="AggregateMessage{TMessage1, TMessage2}"/> where TMessage1 is <see cref="ToolCallMessage"/> and TMessage2 is <see cref="ToolCallResultMessage"/></para>
 /// </summary>
-public class GPTAgent : IStreamingAgent
+public class GPTAgent : IAgent
 {
     private readonly OpenAIClient openAIClient;
-    private readonly IStreamingAgent _innerAgent;
+    private readonly IAgent _innerAgent;
 
     public GPTAgent(
         string name,
@@ -63,7 +63,7 @@ public class GPTAgent : IStreamingAgent
         if (functionMap is not null)
         {
             var functionMapMiddleware = new FunctionCallMiddleware(functionMap: functionMap);
-            _innerAgent = _innerAgent.RegisterStreamingMiddleware(functionMapMiddleware);
+            _innerAgent = _innerAgent.RegisterMiddleware(functionMapMiddleware);
         }
 
         Name = name;
@@ -90,7 +90,7 @@ public class GPTAgent : IStreamingAgent
         if (functionMap is not null)
         {
             var functionMapMiddleware = new FunctionCallMiddleware(functionMap: functionMap);
-            _innerAgent = _innerAgent.RegisterStreamingMiddleware(functionMapMiddleware);
+            _innerAgent = _innerAgent.RegisterMiddleware(functionMapMiddleware);
         }
     }
 
@@ -104,11 +104,11 @@ public class GPTAgent : IStreamingAgent
         return await _innerAgent.GenerateReplyAsync(messages, options, cancellationToken);
     }
 
-    public IAsyncEnumerable<IMessage> GenerateStreamingReplyAsync(
-        IEnumerable<IMessage> messages,
-        GenerateReplyOptions? options = null,
-        CancellationToken cancellationToken = default)
-    {
-        return _innerAgent.GenerateStreamingReplyAsync(messages, options, cancellationToken);
-    }
+    //public IAsyncEnumerable<IMessage> GenerateStreamingReplyAsync(
+    //    IEnumerable<IMessage> messages,
+    //    GenerateReplyOptions? options = null,
+    //    CancellationToken cancellationToken = default)
+    //{
+    //    return _innerAgent.GenerateStreamingReplyAsync(messages, options, cancellationToken);
+    //}
 }

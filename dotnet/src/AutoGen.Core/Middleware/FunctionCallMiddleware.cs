@@ -4,7 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
+//using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -28,7 +28,7 @@ namespace AutoGen.Core;
 /// If the streaming reply from the inner agent is other types of message, the most recent message will be used to invoke the function.
 /// </para>
 /// </summary>
-public class FunctionCallMiddleware : IStreamingMiddleware
+public class FunctionCallMiddleware : IMiddleware
 {
     private readonly IEnumerable<FunctionContract>? functions;
     private readonly IDictionary<string, Func<string, Task<string>>>? functionMap;
@@ -70,55 +70,55 @@ public class FunctionCallMiddleware : IStreamingMiddleware
         return reply;
     }
 
-    public async IAsyncEnumerable<IMessage> InvokeAsync(
-        MiddlewareContext context,
-        IStreamingAgent agent,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        var lastMessage = context.Messages.Last();
-        if (lastMessage is ToolCallMessage toolCallMessage)
-        {
-            yield return await this.InvokeToolCallMessagesBeforeInvokingAgentAsync(toolCallMessage, agent);
-        }
+    //public async IAsyncEnumerable<IMessage> InvokeAsync(
+    //    MiddlewareContext context,
+    //    IStreamingAgent agent,
+    //    [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    //{
+    //    var lastMessage = context.Messages.Last();
+    //    if (lastMessage is ToolCallMessage toolCallMessage)
+    //    {
+    //        yield return await this.InvokeToolCallMessagesBeforeInvokingAgentAsync(toolCallMessage, agent);
+    //    }
 
-        // combine functions
-        var options = new GenerateReplyOptions(context.Options ?? new GenerateReplyOptions());
-        var combinedFunctions = this.functions?.Concat(options.Functions ?? []) ?? options.Functions;
-        options.Functions = combinedFunctions?.ToArray();
+    //    // combine functions
+    //    var options = new GenerateReplyOptions(context.Options ?? new GenerateReplyOptions());
+    //    var combinedFunctions = this.functions?.Concat(options.Functions ?? []) ?? options.Functions;
+    //    options.Functions = combinedFunctions?.ToArray();
 
-        IMessage? mergedFunctionCallMessage = default;
-        await foreach (var message in agent.GenerateStreamingReplyAsync(context.Messages, options, cancellationToken))
-        {
-            if (message is ToolCallMessageUpdate toolCallMessageUpdate && this.functionMap != null)
-            {
-                if (mergedFunctionCallMessage is null)
-                {
-                    mergedFunctionCallMessage = new ToolCallMessage(toolCallMessageUpdate);
-                }
-                else if (mergedFunctionCallMessage is ToolCallMessage toolCall)
-                {
-                    toolCall.Update(toolCallMessageUpdate);
-                }
-                else
-                {
-                    throw new InvalidOperationException("The first message is ToolCallMessage, but the update message is not ToolCallMessageUpdate");
-                }
-            }
-            else if (message is ToolCallMessage toolCallMessage1)
-            {
-                mergedFunctionCallMessage = toolCallMessage1;
-            }
-            else
-            {
-                yield return message;
-            }
-        }
+    //    IMessage? mergedFunctionCallMessage = default;
+    //    await foreach (var message in agent.GenerateStreamingReplyAsync(context.Messages, options, cancellationToken))
+    //    {
+    //        if (message is ToolCallMessageUpdate toolCallMessageUpdate && this.functionMap != null)
+    //        {
+    //            if (mergedFunctionCallMessage is null)
+    //            {
+    //                mergedFunctionCallMessage = new ToolCallMessage(toolCallMessageUpdate);
+    //            }
+    //            else if (mergedFunctionCallMessage is ToolCallMessage toolCall)
+    //            {
+    //                toolCall.Update(toolCallMessageUpdate);
+    //            }
+    //            else
+    //            {
+    //                throw new InvalidOperationException("The first message is ToolCallMessage, but the update message is not ToolCallMessageUpdate");
+    //            }
+    //        }
+    //        else if (message is ToolCallMessage toolCallMessage1)
+    //        {
+    //            mergedFunctionCallMessage = toolCallMessage1;
+    //        }
+    //        else
+    //        {
+    //            yield return message;
+    //        }
+    //    }
 
-        if (mergedFunctionCallMessage is ToolCallMessage toolCallMsg)
-        {
-            yield return await this.InvokeToolCallMessagesAfterInvokingAgentAsync(toolCallMsg, agent);
-        }
-    }
+    //    if (mergedFunctionCallMessage is ToolCallMessage toolCallMsg)
+    //    {
+    //        yield return await this.InvokeToolCallMessagesAfterInvokingAgentAsync(toolCallMsg, agent);
+    //    }
+    //}
 
     private async Task<ToolCallResultMessage> InvokeToolCallMessagesBeforeInvokingAgentAsync(ToolCallMessage toolCallMessage, IAgent agent)
     {

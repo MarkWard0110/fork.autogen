@@ -4,7 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
+//using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoGen.Core;
@@ -28,7 +28,7 @@ namespace AutoGen.Mistral;
 /// You can register this agent with <see cref="MistralAgentExtension.RegisterMessageConnector(AutoGen.Mistral.MistralClientAgent, AutoGen.Mistral.MistralChatMessageConnector?)"/>
 /// to support more AutoGen message types.
 /// </summary>
-public class MistralClientAgent : IStreamingAgent
+public class MistralClientAgent : IAgent
 {
     private readonly MistralClient _client;
     private readonly string _systemMessage;
@@ -78,19 +78,19 @@ public class MistralClientAgent : IStreamingAgent
         return new MessageEnvelope<ChatCompletionResponse>(response, from: this.Name);
     }
 
-    public async IAsyncEnumerable<IMessage> GenerateStreamingReplyAsync(
-        IEnumerable<IMessage> messages,
-        GenerateReplyOptions? options = null,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        var request = BuildChatRequest(messages, options);
-        var response = _client.StreamingChatCompletionsAsync(request);
+    //public async IAsyncEnumerable<IMessage> GenerateStreamingReplyAsync(
+    //    IEnumerable<IMessage> messages,
+    //    GenerateReplyOptions? options = null,
+    //    [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    //{
+    //    var request = BuildChatRequest(messages, options);
+    //    var response = _client.StreamingChatCompletionsAsync(request);
 
-        await foreach (var content in response)
-        {
-            yield return new MessageEnvelope<ChatCompletionResponse>(content, from: this.Name);
-        }
-    }
+    //    await foreach (var content in response)
+    //    {
+    //        yield return new MessageEnvelope<ChatCompletionResponse>(content, from: this.Name);
+    //    }
+    //}
 
     private ChatCompletionRequest BuildChatRequest(IEnumerable<IMessage> messages, GenerateReplyOptions? options)
     {

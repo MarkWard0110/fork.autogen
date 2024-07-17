@@ -10,7 +10,7 @@ public static class MistralAgentExtension
     /// <summary>
     /// Register a <see cref="MistralChatMessageConnector"/> to support more AutoGen message types.
     /// </summary>
-    public static MiddlewareStreamingAgent<MistralClientAgent> RegisterMessageConnector(
+    public static MiddlewareAgent<MistralClientAgent> RegisterMessageConnector(
         this MistralClientAgent agent, MistralChatMessageConnector? connector = null)
     {
         if (connector == null)
@@ -18,20 +18,20 @@ public static class MistralAgentExtension
             connector = new MistralChatMessageConnector();
         }
 
-        return agent.RegisterStreamingMiddleware(connector);
+        return agent.RegisterMiddleware(connector);
     }
 
     /// <summary>
     /// Register a <see cref="MistralChatMessageConnector"/> to support more AutoGen message types.
     /// </summary>
-    public static MiddlewareStreamingAgent<MistralClientAgent> RegisterMessageConnector(
-        this MiddlewareStreamingAgent<MistralClientAgent> agent, MistralChatMessageConnector? connector = null)
+    public static MiddlewareAgent<MistralClientAgent> RegisterMessageConnector(
+        this MiddlewareAgent<MistralClientAgent> agent, MistralChatMessageConnector? connector = null)
     {
         if (connector == null)
         {
             connector = new MistralChatMessageConnector();
         }
 
-        return agent.RegisterStreamingMiddleware(connector);
+        return agent.RegisterMiddleware(connector);
     }
 }

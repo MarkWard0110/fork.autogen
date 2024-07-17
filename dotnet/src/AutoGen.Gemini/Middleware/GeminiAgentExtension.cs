@@ -12,7 +12,7 @@ public static class GeminiAgentExtension
     /// Register an <see cref="GeminiMessageConnector"/> to the <see cref="GeminiChatAgent"/>
     /// </summary>
     /// <param name="connector">the connector to use. If null, a new instance of <see cref="GeminiMessageConnector"/> will be created.</param>
-    public static MiddlewareStreamingAgent<GeminiChatAgent> RegisterMessageConnector(
+    public static MiddlewareAgent<GeminiChatAgent> RegisterMessageConnector(
         this GeminiChatAgent agent, GeminiMessageConnector? connector = null)
     {
         if (connector == null)
@@ -20,21 +20,21 @@ public static class GeminiAgentExtension
             connector = new GeminiMessageConnector();
         }
 
-        return agent.RegisterStreamingMiddleware(connector);
+        return agent.RegisterMiddleware(connector);
     }
 
     /// <summary>
     /// Register an <see cref="GeminiMessageConnector"/> to the <see cref="MiddlewareAgent{T}"/> where T is <see cref="GeminiChatAgent"/>
     /// </summary>
     /// <param name="connector">the connector to use. If null, a new instance of <see cref="GeminiMessageConnector"/> will be created.</param>
-    public static MiddlewareStreamingAgent<GeminiChatAgent> RegisterMessageConnector(
-        this MiddlewareStreamingAgent<GeminiChatAgent> agent, GeminiMessageConnector? connector = null)
+    public static MiddlewareAgent<GeminiChatAgent> RegisterMessageConnector(
+        this MiddlewareAgent<GeminiChatAgent> agent, GeminiMessageConnector? connector = null)
     {
         if (connector == null)
         {
             connector = new GeminiMessageConnector();
         }
 
-        return agent.RegisterStreamingMiddleware(connector);
+        return agent.RegisterMiddleware(connector);
     }
 }

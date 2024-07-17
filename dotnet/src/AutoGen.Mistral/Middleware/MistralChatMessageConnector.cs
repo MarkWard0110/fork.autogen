@@ -4,99 +4,99 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
+//using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoGen.Core;
 
 namespace AutoGen.Mistral;
 
-public class MistralChatMessageConnector : IStreamingMiddleware, IMiddleware
+public class MistralChatMessageConnector : IMiddleware
 {
     public string? Name => nameof(MistralChatMessageConnector);
 
-    public async IAsyncEnumerable<IMessage> InvokeAsync(MiddlewareContext context, IStreamingAgent agent, [EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        var messages = context.Messages;
-        var chatMessages = ProcessMessage(messages, agent);
-        var chunks = new List<ChatCompletionResponse>();
-        await foreach (var reply in agent.GenerateStreamingReplyAsync(chatMessages, context.Options, cancellationToken))
-        {
-            if (reply is IMessage<ChatCompletionResponse> chatMessage)
-            {
-                chunks.Add(chatMessage.Content);
-                var response = ProcessChatCompletionResponse(chatMessage, agent);
-                if (response is not null)
-                {
-                    yield return response;
-                }
-            }
-            else
-            {
-                yield return reply;
-            }
-        }
+    //public async IAsyncEnumerable<IMessage> InvokeAsync(MiddlewareContext context, IStreamingAgent agent, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    //{
+    //    var messages = context.Messages;
+    //    var chatMessages = ProcessMessage(messages, agent);
+    //    var chunks = new List<ChatCompletionResponse>();
+    //    await foreach (var reply in agent.GenerateStreamingReplyAsync(chatMessages, context.Options, cancellationToken))
+    //    {
+    //        if (reply is IMessage<ChatCompletionResponse> chatMessage)
+    //        {
+    //            chunks.Add(chatMessage.Content);
+    //            var response = ProcessChatCompletionResponse(chatMessage, agent);
+    //            if (response is not null)
+    //            {
+    //                yield return response;
+    //            }
+    //        }
+    //        else
+    //        {
+    //            yield return reply;
+    //        }
+    //    }
 
-        // if chunks is not empty, then return the aggregate message as the last message
-        // this is to meet the requirement of streaming call api
-        // where the last message should be the same result of non-streaming call api
-        if (chunks.Count == 0)
-        {
-            yield break;
-        }
+    //    // if chunks is not empty, then return the aggregate message as the last message
+    //    // this is to meet the requirement of streaming call api
+    //    // where the last message should be the same result of non-streaming call api
+    //    if (chunks.Count == 0)
+    //    {
+    //        yield break;
+    //    }
 
-        var lastResponse = chunks.Last() ?? throw new ArgumentNullException("chunks.Last()");
-        var finalResponse = chunks.First() ?? throw new ArgumentNullException("chunks.First()");
-        if (lastResponse.Choices!.First().FinishReason == Choice.FinishReasonEnum.ToolCalls)
-        {
-            // process as tool call message
-            foreach (var response in chunks)
-            {
-                if (finalResponse.Choices!.First().Message is null)
-                {
-                    finalResponse.Choices!.First().Message = response.Choices!.First().Delta;
-                    if (finalResponse.Choices!.First().Message!.ToolCalls is null)
-                    {
-                        finalResponse.Choices!.First().Message!.ToolCalls = new List<FunctionContent>();
-                    }
-                }
+    //    var lastResponse = chunks.Last() ?? throw new ArgumentNullException("chunks.Last()");
+    //    var finalResponse = chunks.First() ?? throw new ArgumentNullException("chunks.First()");
+    //    if (lastResponse.Choices!.First().FinishReason == Choice.FinishReasonEnum.ToolCalls)
+    //    {
+    //        // process as tool call message
+    //        foreach (var response in chunks)
+    //        {
+    //            if (finalResponse.Choices!.First().Message is null)
+    //            {
+    //                finalResponse.Choices!.First().Message = response.Choices!.First().Delta;
+    //                if (finalResponse.Choices!.First().Message!.ToolCalls is null)
+    //                {
+    //                    finalResponse.Choices!.First().Message!.ToolCalls = new List<FunctionContent>();
+    //                }
+    //            }
 
-                if (response.Choices!.First().Delta!.ToolCalls is not null)
-                {
-                    finalResponse.Choices!.First().Message!.ToolCalls!.AddRange(response.Choices!.First().Delta!.ToolCalls!);
-                }
+    //            if (response.Choices!.First().Delta!.ToolCalls is not null)
+    //            {
+    //                finalResponse.Choices!.First().Message!.ToolCalls!.AddRange(response.Choices!.First().Delta!.ToolCalls!);
+    //            }
 
-                finalResponse.Choices!.First().FinishReason = response.Choices!.First().FinishReason;
+    //            finalResponse.Choices!.First().FinishReason = response.Choices!.First().FinishReason;
 
-                // the usage information will be included in the last message
-                if (response.Usage is not null)
-                {
-                    finalResponse.Usage = response.Usage;
-                }
-            }
-        }
-        else
-        {
-            // process as plain text message
-            foreach (var response in chunks)
-            {
-                if (finalResponse.Choices!.First().Message is null)
-                {
-                    finalResponse.Choices!.First().Message = response.Choices!.First().Delta;
-                }
+    //            // the usage information will be included in the last message
+    //            if (response.Usage is not null)
+    //            {
+    //                finalResponse.Usage = response.Usage;
+    //            }
+    //        }
+    //    }
+    //    else
+    //    {
+    //        // process as plain text message
+    //        foreach (var response in chunks)
+    //        {
+    //            if (finalResponse.Choices!.First().Message is null)
+    //            {
+    //                finalResponse.Choices!.First().Message = response.Choices!.First().Delta;
+    //            }
 
-                finalResponse.Choices!.First().Message!.Content += response.Choices!.First().Delta!.Content;
-                finalResponse.Choices!.First().FinishReason = response.Choices!.First().FinishReason;
-                // the usage information will be included in the last message
-                if (response.Usage is not null)
-                {
-                    finalResponse.Usage = response.Usage;
-                }
-            }
-        }
+    //            finalResponse.Choices!.First().Message!.Content += response.Choices!.First().Delta!.Content;
+    //            finalResponse.Choices!.First().FinishReason = response.Choices!.First().FinishReason;
+    //            // the usage information will be included in the last message
+    //            if (response.Usage is not null)
+    //            {
+    //                finalResponse.Usage = response.Usage;
+    //            }
+    //        }
+    //    }
 
-        yield return PostProcessMessage(finalResponse, agent);
-    }
+    //    yield return PostProcessMessage(finalResponse, agent);
+    //}
 
     public async Task<IMessage> InvokeAsync(MiddlewareContext context, IAgent agent, CancellationToken cancellationToken = default)
     {

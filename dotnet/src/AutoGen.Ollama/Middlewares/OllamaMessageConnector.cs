@@ -5,14 +5,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
-using System.Runtime.CompilerServices;
+//using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoGen.Core;
 
 namespace AutoGen.Ollama;
 
-public class OllamaMessageConnector : IStreamingMiddleware
+public class OllamaMessageConnector : IMiddleware
 {
     public string Name => nameof(OllamaMessageConnector);
 
@@ -30,44 +30,44 @@ public class OllamaMessageConnector : IStreamingMiddleware
         };
     }
 
-    public async IAsyncEnumerable<IMessage> InvokeAsync(MiddlewareContext context, IStreamingAgent agent,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        var messages = ProcessMessage(context.Messages, agent);
-        var chunks = new List<ChatResponseUpdate>();
-        await foreach (var update in agent.GenerateStreamingReplyAsync(messages, context.Options, cancellationToken))
-        {
-            if (update is IMessage<ChatResponseUpdate> chatResponseUpdate)
-            {
-                var response = chatResponseUpdate.Content switch
-                {
-                    _ when chatResponseUpdate.Content.Message?.Value is string content => new TextMessageUpdate(Role.Assistant, content, chatResponseUpdate.From),
-                    _ => null,
-                };
+    //public async IAsyncEnumerable<IMessage> InvokeAsync(MiddlewareContext context, IStreamingAgent agent,
+    //    [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    //{
+    //    var messages = ProcessMessage(context.Messages, agent);
+    //    var chunks = new List<ChatResponseUpdate>();
+    //    await foreach (var update in agent.GenerateStreamingReplyAsync(messages, context.Options, cancellationToken))
+    //    {
+    //        if (update is IMessage<ChatResponseUpdate> chatResponseUpdate)
+    //        {
+    //            var response = chatResponseUpdate.Content switch
+    //            {
+    //                _ when chatResponseUpdate.Content.Message?.Value is string content => new TextMessageUpdate(Role.Assistant, content, chatResponseUpdate.From),
+    //                _ => null,
+    //            };
 
-                if (response != null)
-                {
-                    chunks.Add(chatResponseUpdate.Content);
-                    yield return response;
-                }
-            }
-            else
-            {
-                yield return update;
-            }
-        }
+    //            if (response != null)
+    //            {
+    //                chunks.Add(chatResponseUpdate.Content);
+    //                yield return response;
+    //            }
+    //        }
+    //        else
+    //        {
+    //            yield return update;
+    //        }
+    //    }
 
-        if (chunks.Count == 0)
-        {
-            yield break;
-        }
+    //    if (chunks.Count == 0)
+    //    {
+    //        yield break;
+    //    }
 
-        // if the chunks are not empty, aggregate them into a single message
-        var messageContent = string.Join(string.Empty, chunks.Select(c => c.Message?.Value));
-        var message = new TextMessage(Role.Assistant, messageContent, agent.Name);
+    //    // if the chunks are not empty, aggregate them into a single message
+    //    var messageContent = string.Join(string.Empty, chunks.Select(c => c.Message?.Value));
+    //    var message = new TextMessage(Role.Assistant, messageContent, agent.Name);
 
-        yield return message;
-    }
+    //    yield return message;
+    //}
 
     private IEnumerable<IMessage> ProcessMessage(IEnumerable<IMessage> messages, IAgent agent)
     {

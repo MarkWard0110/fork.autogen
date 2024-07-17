@@ -21,12 +21,12 @@ public static class PrintMessageMiddlewareExtension
         return RegisterPrintMessage(agent);
     }
 
-    [Obsolete("This API will be removed in v0.1.0, Use RegisterPrintMessage instead.")]
-    public static MiddlewareStreamingAgent<TAgent> RegisterPrintFormatMessageHook<TAgent>(this MiddlewareStreamingAgent<TAgent> agent)
-        where TAgent : IStreamingAgent
-    {
-        return RegisterPrintMessage(agent);
-    }
+    //[Obsolete("This API will be removed in v0.1.0, Use RegisterPrintMessage instead.")]
+    //public static MiddlewareStreamingAgent<TAgent> RegisterPrintFormatMessageHook<TAgent>(this MiddlewareStreamingAgent<TAgent> agent)
+    //    where TAgent : IStreamingAgent
+    //{
+    //    return RegisterPrintMessage(agent);
+    //}
 
     /// <summary>
     /// Register a <see cref="PrintMessageMiddleware"/> to <paramref name="agent"/> which print formatted message to console.
@@ -54,16 +54,16 @@ public static class PrintMessageMiddlewareExtension
         return middlewareAgent;
     }
 
-    /// <summary>
-    /// Register a <see cref="PrintMessageMiddleware"/> to <paramref name="agent"/> which print formatted message to console.
-    /// </summary>
-    public static MiddlewareStreamingAgent<TAgent> RegisterPrintMessage<TAgent>(this MiddlewareStreamingAgent<TAgent> agent)
-        where TAgent : IStreamingAgent
-    {
-        var middleware = new PrintMessageMiddleware();
-        var middlewareAgent = new MiddlewareStreamingAgent<TAgent>(agent);
-        middlewareAgent.UseStreaming(middleware);
+    ///// <summary>
+    ///// Register a<see cref="PrintMessageMiddleware"/> to<paramref name="agent"/> which print formatted message to console.
+    ///// </summary>
+    //public static MiddlewareStreamingAgent<TAgent> RegisterPrintMessage<TAgent>(this MiddlewareStreamingAgent<TAgent> agent)
+    //    where TAgent : IStreamingAgent
+    //{
+    //    var middleware = new PrintMessageMiddleware();
+    //    var middlewareAgent = new MiddlewareStreamingAgent<TAgent>(agent);
+    //    middlewareAgent.UseStreaming(middleware);
 
-        return middlewareAgent;
-    }
+    //    return middlewareAgent;
+    //}
 }

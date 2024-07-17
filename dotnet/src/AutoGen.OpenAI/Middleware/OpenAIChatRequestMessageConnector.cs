@@ -4,7 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
+//using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure.AI.OpenAI;
@@ -22,7 +22,7 @@ namespace AutoGen.OpenAI;
 /// <para>- <see cref="IMessage{ChatRequestMessage}"/> where T is <see cref="ChatRequestMessage"/></para>
 /// <para>- <see cref="AggregateMessage{TMessage1, TMessage2}"/> where TMessage1 is <see cref="ToolCallMessage"/> and TMessage2 is <see cref="ToolCallResultMessage"/></para>
 /// </summary>
-public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddleware
+public class OpenAIChatRequestMessageConnector : IMiddleware
 {
     private bool strictMode = false;
 
@@ -47,45 +47,45 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
         return PostProcessMessage(reply);
     }
 
-    public async IAsyncEnumerable<IMessage> InvokeAsync(
-        MiddlewareContext context,
-        IStreamingAgent agent,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        var chatMessages = ProcessIncomingMessages(agent, context.Messages);
-        var streamingReply = agent.GenerateStreamingReplyAsync(chatMessages, context.Options, cancellationToken);
-        string? currentToolName = null;
-        await foreach (var reply in streamingReply)
-        {
-            if (reply is IMessage<StreamingChatCompletionsUpdate> update)
-            {
-                if (update.Content.FunctionName is string functionName)
-                {
-                    currentToolName = functionName;
-                }
-                else if (update.Content.ToolCallUpdate is StreamingFunctionToolCallUpdate toolCallUpdate && toolCallUpdate.Name is string toolCallName)
-                {
-                    currentToolName = toolCallName;
-                }
-                var postProcessMessage = PostProcessStreamingMessage(update, currentToolName);
-                if (postProcessMessage != null)
-                {
-                    yield return postProcessMessage;
-                }
-            }
-            else
-            {
-                if (this.strictMode)
-                {
-                    throw new InvalidOperationException($"Invalid streaming message type {reply.GetType().Name}");
-                }
-                else
-                {
-                    yield return reply;
-                }
-            }
-        }
-    }
+    //public async IAsyncEnumerable<IMessage> InvokeAsync(
+    //    MiddlewareContext context,
+    //    IStreamingAgent agent,
+    //    [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    //{
+    //    var chatMessages = ProcessIncomingMessages(agent, context.Messages);
+    //    var streamingReply = agent.GenerateStreamingReplyAsync(chatMessages, context.Options, cancellationToken);
+    //    string? currentToolName = null;
+    //    await foreach (var reply in streamingReply)
+    //    {
+    //        if (reply is IMessage<StreamingChatCompletionsUpdate> update)
+    //        {
+    //            if (update.Content.FunctionName is string functionName)
+    //            {
+    //                currentToolName = functionName;
+    //            }
+    //            else if (update.Content.ToolCallUpdate is StreamingFunctionToolCallUpdate toolCallUpdate && toolCallUpdate.Name is string toolCallName)
+    //            {
+    //                currentToolName = toolCallName;
+    //            }
+    //            var postProcessMessage = PostProcessStreamingMessage(update, currentToolName);
+    //            if (postProcessMessage != null)
+    //            {
+    //                yield return postProcessMessage;
+    //            }
+    //        }
+    //        else
+    //        {
+    //            if (this.strictMode)
+    //            {
+    //                throw new InvalidOperationException($"Invalid streaming message type {reply.GetType().Name}");
+    //            }
+    //            else
+    //            {
+    //                yield return reply;
+    //            }
+    //        }
+    //    }
+    //}
 
     public IMessage PostProcessMessage(IMessage message)
     {

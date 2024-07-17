@@ -11,7 +11,7 @@ public static class OllamaAgentExtension
     /// Register an <see cref="OllamaMessageConnector"/> to the <see cref="OllamaAgent"/>
     /// </summary>
     /// <param name="connector">the connector to use. If null, a new instance of <see cref="OllamaMessageConnector"/> will be created.</param>
-    public static MiddlewareStreamingAgent<OllamaAgent> RegisterMessageConnector(
+    public static MiddlewareAgent<OllamaAgent> RegisterMessageConnector(
         this OllamaAgent agent, OllamaMessageConnector? connector = null)
     {
         if (connector == null)
@@ -19,21 +19,21 @@ public static class OllamaAgentExtension
             connector = new OllamaMessageConnector();
         }
 
-        return agent.RegisterStreamingMiddleware(connector);
+        return agent.RegisterMiddleware(connector);
     }
 
     /// <summary>
     /// Register an <see cref="OllamaMessageConnector"/> to the <see cref="MiddlewareAgent{T}"/> where T is <see cref="OllamaAgent"/>
     /// </summary>
     /// <param name="connector">the connector to use. If null, a new instance of <see cref="OllamaMessageConnector"/> will be created.</param>
-    public static MiddlewareStreamingAgent<OllamaAgent> RegisterMessageConnector(
-        this MiddlewareStreamingAgent<OllamaAgent> agent, OllamaMessageConnector? connector = null)
+    public static MiddlewareAgent<OllamaAgent> RegisterMessageConnector(
+        this MiddlewareAgent<OllamaAgent> agent, OllamaMessageConnector? connector = null)
     {
         if (connector == null)
         {
             connector = new OllamaMessageConnector();
         }
 
-        return agent.RegisterStreamingMiddleware(connector);
+        return agent.RegisterMiddleware(connector);
     }
 }

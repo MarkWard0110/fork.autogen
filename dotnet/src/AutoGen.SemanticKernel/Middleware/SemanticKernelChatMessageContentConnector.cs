@@ -4,7 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
+//using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.SemanticKernel;
@@ -32,7 +32,7 @@ namespace AutoGen.SemanticKernel;
 /// <para>- <see cref="MultiModalMessage"/></para>
 /// <para>- (streaming) <see cref="TextMessageUpdate"/></para>
 /// </summary>
-public class SemanticKernelChatMessageContentConnector : IMiddleware, IStreamingMiddleware
+public class SemanticKernelChatMessageContentConnector : IMiddleware
 {
     public string? Name => nameof(SemanticKernelChatMessageContentConnector);
 
@@ -47,16 +47,16 @@ public class SemanticKernelChatMessageContentConnector : IMiddleware, IStreaming
         return PostProcessMessage(reply);
     }
 
-    public async IAsyncEnumerable<IMessage> InvokeAsync(MiddlewareContext context, IStreamingAgent agent, [EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        var chatMessageContents = ProcessMessage(context.Messages, agent)
-            .Select(m => new MessageEnvelope<ChatMessageContent>(m));
+    //public async IAsyncEnumerable<IMessage> InvokeAsync(MiddlewareContext context, IStreamingAgent agent, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    //{
+    //    var chatMessageContents = ProcessMessage(context.Messages, agent)
+    //        .Select(m => new MessageEnvelope<ChatMessageContent>(m));
 
-        await foreach (var reply in agent.GenerateStreamingReplyAsync(chatMessageContents, context.Options, cancellationToken))
-        {
-            yield return PostProcessStreamingMessage(reply);
-        }
-    }
+    //    await foreach (var reply in agent.GenerateStreamingReplyAsync(chatMessageContents, context.Options, cancellationToken))
+    //    {
+    //        yield return PostProcessStreamingMessage(reply);
+    //    }
+    //}
 
     private IMessage PostProcessMessage(IMessage input)
     {

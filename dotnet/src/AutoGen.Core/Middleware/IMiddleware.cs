@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace AutoGen.Core;
 
 /// <summary>
-/// The middleware interface. For streaming-version middleware, check <see cref="IStreamingMiddleware"/>.
+/// The middleware interface. 
 /// </summary>
 public interface IMiddleware
 {

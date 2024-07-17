@@ -10,18 +10,18 @@ namespace AutoGen.Ollama.Sample;
 
 public class Chat_With_LLaVA
 {
-    public static async Task RunAsync()
+    public static async Task RunAsync(string ollamaHost, string model)
     {
         #region Create_Ollama_Agent
         using var httpClient = new HttpClient()
         {
-            BaseAddress = new Uri("http://localhost:11434"),
+            BaseAddress = new Uri(ollamaHost),
         };
 
         var ollamaAgent = new OllamaAgent(
             httpClient: httpClient,
             name: "ollama",
-            modelName: "llava:latest",
+            modelName: model,
             systemMessage: "You are a helpful AI assistant")
             .RegisterMessageConnector()
             .RegisterPrintMessage();
